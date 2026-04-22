@@ -1,0 +1,81 @@
+---
+title: 'Contributing code and fixes to Pico FIDO'
+description: 'Find out how to submit bug reports, small fixes, and new features while meeting the dual-license contributor agreement for Pico FIDO.'
+---
+
+Pico FIDO is published under a dual-license model: a Community Edition released under AGPLv3, and a proprietary Enterprise Edition for organizations. To keep that model legally sound, every contribution must be compatible with both editions. By opening a pull request you grant the project maintainers the right to include your work in the open-source (AGPLv3) codebase and in closed-source, commercially licensed builds — without any additional approval or payment.
+
+## Contributor license agreement
+
+When you open a pull request you confirm that:
+
+1. **You have the right to contribute.** You are either the original author or you have obtained the necessary rights to contribute under these terms.
+2. **Dual licensing permission.** Your contribution may be merged, modified, sublicensed, and redistributed under the AGPLv3 Community Edition and under any proprietary or Enterprise editions of this project, now or in the future.
+3. **Attribution.** Maintainers may retain or add `Copyright (c) <your name>` lines and may make changes for clarity, style, security, or integration reasons.
+4. **No automatic SLA.** Opening a pull request does not create any support obligation or guarantee of review, merge, or maintenance.
+5. **Enterprise features may be declined.** Functionality that falls under Enterprise scope (multi-tenant provisioning, centralized audit trails, corporate policy enforcement, attestation flows, key escrow, dual-control, etc.) may be declined for the public AGPLv3 tree even if technically correct.
+
+If you are not comfortable with these terms, open an Issue to start a discussion before opening a pull request.
+
+## Types of contributions
+
+<AccordionGroup>
+  <Accordion title="Bug reports">
+    Open an issue and include:
+
+    - Hardware and board revision
+    - Firmware version or commit hash
+    - Exact steps to reproduce
+    - Expected behavior vs. actual behavior
+    - Logs or traces if available (strip any secrets before pasting)
+
+    **Security-sensitive findings:** do not post publicly. Send a short report by email so it can be triaged responsibly before disclosure.
+  </Accordion>
+
+  <Accordion title="Small fixes and minor improvements">
+    You can open a pull request directly for:
+
+    - Bug fixes
+    - Portability fixes or new board definitions
+    - Clarifications in code comments
+    - Build and tooling cleanup
+    - Documentation of existing behavior
+
+    Keep pull requests focused — one logical change per PR wherever possible.
+  </Accordion>
+
+  <Accordion title="Larger features and behavior changes">
+    Open an Issue first and describe:
+
+    - What problem you are solving (not just "add feature X")
+    - Impact on existing flows or the security model
+    - Any new dependencies you plan to introduce
+
+    This avoids investing significant effort in work that will not be accepted into the Community Edition.
+  </Accordion>
+
+  <Accordion title="Coding style and security posture">
+    Pico FIDO runs in environments where secrets live, so the bar for code quality is high:
+
+    - Aim for clarity and small, auditable changes.
+    - No debug backdoors. No "just for testing" shortcuts left enabled in production code.
+    - Keep external dependencies minimal and license-compatible (MIT, Apache 2.0, or similarly permissive licenses are generally fine).
+  </Accordion>
+</AccordionGroup>
+
+## Commit and pull request format
+
+Use descriptive commit messages. `Fix PIN retry counter wrap` is better than `fix stuff`.
+
+In the pull request description, include:
+
+1. A short summary of what was changed and why.
+2. The following licensing confirmation line at the bottom, copied verbatim:
+
+```
+I confirm that I have read CONTRIBUTING.md and I agree that this contribution
+may be used under both the AGPLv3 Community Edition and any proprietary /
+commercial / Enterprise editions of this project, now or in the future.
+```
+
+A pull request without this confirmation may be delayed or closed without merge.

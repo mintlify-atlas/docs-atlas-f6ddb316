@@ -1,0 +1,56 @@
+---
+title: "Pico FIDO: open-source FIDO2 passkey firmware"
+description: "Transform a Raspberry Pi Pico or ESP32 microcontroller into a fully compliant FIDO2 hardware security key with CTAP 2.1, WebAuthn, OATH, and OTP support."
+---
+
+Pico FIDO is open-source firmware (version 7.6) that turns a Raspberry Pi Pico or ESP32 microcontroller into a USB hardware security key. It implements the full FIDO2 and CTAP 2.1 specifications, making it interoperable with any WebAuthn-compatible browser, operating system, or service — with no proprietary drivers required. Whether you want a personal passkey device or a foundation for a custom security product, Pico FIDO gives you complete control over the hardware and firmware.
+
+## Key features
+
+- **CTAP 2.1 / CTAP 1 and WebAuthn** — full specification compliance, including U2F backward compatibility
+- **Discoverable credentials** — resident key support with credential management
+- **ECDSA and EdDSA authentication** — SECP256R1, SECP384R1, SECP521R1, SECP256K1, and Ed25519 curves
+- **PIN and user presence** — physical button enforcement and PIN-based user verification
+- **HMAC-Secret, CredProtect, credBlobs, largeBlobKey extensions** — full CTAP 2.1 extension support
+- **OATH TOTP/HOTP** — time-based and counter-based one-time passwords via the YKOATH protocol
+- **Yubikey OTP** — challenge-response generation and emulated keyboard OTP typing
+- **Large blobs** — up to 2,048 bytes of opaque credential-associated storage
+- **24-word backup** — mnemonic seed export for device recovery
+- **Secure Boot and OTP key storage** — hardware-backed master key encryption on RP2350 and ESP32-S3
+- **Rescue interface** — recover an unresponsive or undetectable device without data loss
+- **LED customization** — configure blink patterns via the PicoKey App
+
+## Compatibility
+
+Pico FIDO works out of the box with major tools and platforms:
+
+- **Yubico Authenticator** and **YKMAN** — full compatibility with Yubico's management tools
+- **Nitrokey nitropy** and **nitroapp** — drop-in replacement for Nitrokey workflows
+- **Browsers** — Chrome, Firefox, Safari, Edge, and any browser with WebAuthn support
+- **Operating systems** — Windows, macOS, and Linux via the standard USB HID driver (no installation needed)
+
+The default firmware ships with VID/PID `2E8A:10FE`, granted by the Raspberry Pi Foundation. You can also build with alternative VID/PID values for compatibility with OpenSC and similar toolchains.
+
+## License
+
+Pico FIDO is available under two editions:
+
+- **Community Edition** — released under AGPL-3.0. Free to study, modify, and run, including internal evaluation. Distributing modified firmware or running it as a network service requires publishing your source code under the same license.
+- **Enterprise / Commercial Edition** — proprietary license for production deployments, OEM integration, corporate policy enforcement, and more. Includes a commercial license, onboarding, and officially signed builds. Contact [pol@henarejos.me](mailto:pol@henarejos.me) with subject `ENTERPRISE LICENSE <your company name>`.
+
+## Explore the docs
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Flash your device and register your first passkey in minutes
+  </Card>
+  <Card title="Hardware support" icon="microchip" href="/hardware-support">
+    Compare supported boards: Pico, Pico 2, and ESP32-S3
+  </Card>
+  <Card title="Build from source" icon="hammer" href="/building/raspberry-pi-pico">
+    Compile custom firmware with your own VID/PID and feature flags
+  </Card>
+  <Card title="Security overview" icon="shield-halved" href="/security/overview">
+    Understand key protection, Secure Boot, and RP2040 limitations
+  </Card>
+</CardGroup>

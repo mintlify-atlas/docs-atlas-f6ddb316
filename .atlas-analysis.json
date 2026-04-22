@@ -1,0 +1,94 @@
+{
+  "projectType": "general",
+  "projectName": "Pico FIDO",
+  "projectDescription": "Open-source firmware that transforms a Raspberry Pi Pico or ESP32 microcontroller into a fully compliant FIDO2/WebAuthn hardware security key.",
+  "theme": "aspen",
+  "primaryColor": "#2563EB",
+  "lightColor": "#EFF6FF",
+  "darkColor": "#1E3A8A",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "hardware-support"
+            ]
+          },
+          {
+            "group": "Building & Flashing",
+            "pages": [
+              "building/raspberry-pi-pico",
+              "building/esp32",
+              "building/configuration-options"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/fido2-ctap2",
+              "features/oath-otp",
+              "features/credential-management",
+              "features/extensions"
+            ]
+          },
+          {
+            "group": "Security",
+            "pages": [
+              "security/overview",
+              "security/secure-boot",
+              "security/pin-protection",
+              "security/backup-recovery"
+            ]
+          },
+          {
+            "group": "Usage & Tools",
+            "pages": [
+              "usage/led-indicators",
+              "usage/compatible-tools",
+              "usage/vendor-configuration"
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "development/testing",
+              "development/contributing",
+              "development/enterprise"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "CTAP 2.1 / CTAP 1 and WebAuthn / U2F support",
+    "Discoverable credentials (resident keys) with up to 256 stored credentials",
+    "ECDSA and EdDSA with SECP256R1, SECP384R1, SECP521R1, SECP256K1, Ed25519 curves",
+    "HMAC-Secret, CredProtect, credBlobs, largeBlobKey, and minPinLength extensions",
+    "OATH TOTP/HOTP and Yubikey OTP with emulated keyboard interface",
+    "Secure Boot and Secure Lock support on RP2350 and ESP32-S3",
+    "One-Time Programming (OTP) master key encryption for flash protection",
+    "Enterprise attestation and PIN UV Auth Token with permissions",
+    "24-word mnemonic backup and device recovery rescue interface",
+    "Compatible with Yubico Authenticator, YKMAN, Nitrokey nitropy/nitroapp"
+  ],
+  "publicApiSurface": [
+    "CTAP_MAKE_CREDENTIAL (0x01) — create a new credential",
+    "CTAP_GET_ASSERTION (0x02) — authenticate with a stored credential",
+    "CTAP_GET_INFO (0x04) — query authenticator capabilities",
+    "CTAP_CLIENT_PIN (0x06) — set, change, or verify device PIN",
+    "CTAP_RESET (0x07) — factory reset the authenticator",
+    "CTAP_CREDENTIAL_MGMT (0x0A) — enumerate and delete credentials",
+    "CTAP_LARGE_BLOBS (0x0C) — read/write large blob storage",
+    "CTAP_CONFIG (0x0D) — authenticator configuration (enterprise attestation, PIN policy, LED)",
+    "CTAP_VENDOR_BACKUP (0x01) — export/import 24-word mnemonic backup",
+    "CTAP_VENDOR_UNLOCK (0x03) — secure lock/unlock device",
+    "CTAP1 REGISTER (0x01) / AUTHENTICATE (0x02) — legacy U2F commands",
+    "OATH AID (A000000527210101) — TOTP/HOTP credential management via CCID"
+  ]
+}

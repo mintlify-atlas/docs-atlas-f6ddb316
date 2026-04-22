@@ -1,0 +1,104 @@
+---
+title: "PIN setup and user verification on Pico FIDO"
+description: "Configure PIN policies, understand retry lockout, manage UV auth tokens, and control per-operation permissions with CTAP 2.1 PIN protection."
+---
+
+Pico FIDO supports CTAP 2.1 PIN-based user verification (UV), which proves that the person holding the device knows the PIN — not just that they have physical possession. The PIN is never transmitted in plaintext: the client hashes the PIN before sending it, and the device stores only the hash. After `MAX_PIN_RETRIES = 8` consecutive failures, the device locks and refuses further PIN-based operations until it is reset.
+
+## User presence vs. user verification
+
+These two concepts are often confused but represent different security guarantees:
+
+- **User Presence (UP)** — you physically press the button on the device. No knowledge factor is required. Indicated by the `FIDO2_AUT_FLAG_UP` (`0x01`) flag in the authenticator response.
+- **User Verification (UV)** — you enter the correct PIN in addition to pressing the button. Indicated by the `FIDO2_AUT_FLAG_UV` (`0x04`) flag.
+
+Relying parties that require UV will reject assertions where only UP was performed.
+
+## PIN retry counter
+
+The device tracks failed PIN attempts. After 8 consecutive failures (`MAX_PIN_RETRIES`), the device enters a blocked state:
+
+- `CTAP2_ERR_PIN_BLOCKED` (`0x32`) is returned on any further attempt
+- The device must be factory reset to recover — all credentials are lost on reset
+- The retry counter resets to 8 after a successful PIN verification
+
+## PIN UV auth token
+
+After a successful PIN verification, the device issues an ephemeral `pinUvAuthToken_t`. This token is used to authorize subsequent operations during the session without re-entering the PIN for each command.
+
+```c
+typedef struct pinUvAuthToken {
+    uint8_t *data;
+    size_t len;
+    bool in_use;
+    uint8_t permissions;
+    uint8_t rp_id_hash[32];
+    bool has_rp_id;
+    bool user_present;
+    bool user_verified;
+} pinUvAuthToken_t;
+```
+
+The token tracks which permissions were granted, the RP ID scope (if restricted), and the current UP/UV state. It is zeroed when the session ends or when the device disconnects.
+
+The session PIN itself is stored in `session_pin[32]` — an ephemeral 32-byte buffer that is zeroed on disconnect.
+
+## PIN permissions
+
+When requesting a PIN UV auth token, the platform specifies which operations the token may authorize. Pico FIDO supports all CTAP 2.1 permission bits:
+
+<AccordionGroup>
+  <Accordion title="MakeCredential (MC) — 0x01">
+    Allows the token to authorize `authenticatorMakeCredential` calls. Required when creating new discoverable credentials with UV.
+  </Accordion>
+  <Accordion title="GetAssertion (GA) — 0x02">
+    Allows the token to authorize `authenticatorGetAssertion` calls. Required when UV is requested during authentication.
+  </Accordion>
+  <Accordion title="CredentialManagement (CM) — 0x04">
+    Allows the token to authorize credential management operations, such as listing, updating, or deleting resident credentials.
+  </Accordion>
+  <Accordion title="BioEnrollment (BE) — 0x08">
+    Reserved for biometric enrollment operations. Included for CTAP 2.1 spec compliance.
+  </Accordion>
+  <Accordion title="LargeBlobWrite (LBW) — 0x10">
+    Allows the token to authorize writes to the large blob store. This permission is preserved even after `clearPinUvAuthTokenPermissionsExceptLbw` is called.
+  </Accordion>
+  <Accordion title="AuthenticatorConfiguration (ACFG) — 0x20">
+    Allows the token to authorize authenticator configuration commands, such as enabling enterprise attestation or setting minimum PIN length.
+  </Accordion>
+  <Accordion title="PerCredentialManagementReadOnly (PCMR) — 0x40">
+    Grants read-only access to per-credential management operations without allowing modifications.
+  </Accordion>
+</AccordionGroup>
+
+## Persistent PIN UV auth token
+
+For scenarios where a token must survive a device reboot, Pico FIDO provides `persistentPinUvAuthToken_t`:
+
+```c
+typedef struct persistentPinUvAuthToken {
+    uint8_t *data;
+    size_t len;
+    uint8_t permissions;
+} persistentPinUvAuthToken_t;
+```
+
+This token retains its permission set across power cycles, allowing authorized operations to continue after reconnect without requiring PIN re-entry.
+
+## PIN policy configuration
+
+You can enforce a minimum PIN length and other PIN requirements using the vendor configuration command `CTAP_CONFIG_PIN_POLICY` (`0x6c07d70fe96c3897`). This is sent as a CTAP config command and takes effect immediately.
+
+The `minPinLength` extension lets relying parties request that the device enforces a minimum PIN length during registration. If the current PIN is shorter than the minimum, the authenticator returns `CTAP2_ERR_PIN_POLICY_VIOLATION` (`0x37`).
+
+## Admin PIN
+
+Pico FIDO supports a separate admin PIN for enterprise and vendor operations. The admin PIN is used with the `CTAP_VENDOR_ADMIN_PIN` (`0x08`) vendor command. It controls access to privileged operations such as:
+
+- Unlocking the device after Secure Lock is applied
+- Restoring a backup on a locked device
+- Configuring enterprise attestation certificates
+
+<Note>
+  The admin PIN and the user PIN are independent. Setting or changing one does not affect the other.
+</Note>

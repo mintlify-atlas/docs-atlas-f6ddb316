@@ -1,0 +1,134 @@
+---
+title: 'Enterprise and commercial licensing for Pico FIDO'
+description: 'Compare the AGPLv3 Community and proprietary Enterprise editions of Pico FIDO and learn how to request a commercial license for your organization.'
+---
+
+Pico FIDO is available under two editions. The Community Edition is free and open source under AGPLv3 — suitable for individuals, researchers, and internal evaluation. The Enterprise Edition is a proprietary license for organizations that need production-grade deployment, fleet management, corporate policy enforcement, or OEM integration without AGPLv3 disclosure obligations. This page explains what each edition covers and how to request a commercial license.
+
+<Note>
+  The Community Edition remains AGPLv3 and will continue to exist. Choosing the Enterprise Edition does not affect your ability to use, study, or modify the Community Edition under its existing open-source terms.
+</Note>
+
+## Editions at a glance
+
+| | Community Edition | Enterprise Edition |
+|---|---|---|
+| **License** | AGPLv3 (open source) | Proprietary (commercial) |
+| **Cost** | Free | Scoped and priced per customer |
+| **Source disclosure** | Required for distributed or network-accessible modifications | Not required |
+| **Support / SLA** | None | Optional (see below) |
+| **Enterprise features** | Not included | Available as optional components |
+
+### Community Edition
+
+The Community Edition is intended for:
+
+- Individual users and researchers
+- Evaluation and prototyping
+- Internal lab and security testing
+
+You may read, modify, and run the source code. If you distribute modified firmware or binaries to third parties, or run a modified version as a network-accessible service, you must provide the corresponding source code to recipients — as required by AGPLv3.
+
+### Enterprise Edition
+
+The Enterprise Edition is for organizations that need to:
+
+- Deploy at scale across multiple devices, users, or teams
+- Integrate Pico FIDO into their own physical product or appliance
+- Run it as an internal virtualized or private-cloud service for multiple teams or tenants
+- Enforce internal security policy (admin vs. user roles, mandatory PIN rules, secure offboarding and revocation)
+- Avoid AGPLv3 source disclosure obligations for their own modifications and integration code
+
+## Base license package
+
+Every Enterprise license always includes:
+
+- **Commercial license (proprietary).** You may run and integrate the software in production — including virtualized and internal-cloud deployments — without being required to disclose derivative source code under AGPLv3.
+- **Official signed builds.** You receive signed builds from the original developer so you can verify integrity and provenance.
+- **Onboarding call (up to 1 hour).** A live remote session to get you from "we have it" to "it's running in our environment" with minimal guesswork.
+
+## Optional enterprise components
+
+These components are not automatically bundled. They are available on demand, scoped and priced per customer based on your use case.
+
+<AccordionGroup>
+  <Accordion title="Production / multi-user readiness">
+    Permission and support for operating the system with multiple users, multiple devices, and multiple teams in real production environments.
+  </Accordion>
+
+  <Accordion title="Bulk / fleet provisioning">
+    Automated enrollment for many tokens, devices, or users at once — including CSV and directory import, scripted onboarding of new users, initial PIN assignment and reset workflows, and role-based access control (admin vs. user).
+  </Accordion>
+
+  <Accordion title="Policy and lifecycle tooling">
+    Corporate PIN policy enforcement, per-user and per-team access control, device inventory and traceability, and secure revocation and retirement when someone leaves your organization.
+  </Accordion>
+
+  <Accordion title="Custom attestation / per-organization identity">
+    Per-company certificate chains and attestation keys so devices can prove "this token is officially ours," including anti-cloning and unique device identity for OEM and fleet use.
+  </Accordion>
+
+  <Accordion title="Virtualization / internal cloud deployment support">
+    Guidance and components to run Pico FIDO as an internal service (VM, container, private-cloud HSM or auth backend) serving multiple internal teams or tenants under your brand.
+  </Accordion>
+
+  <Accordion title="Post-quantum (PQC) key material handling">
+    Integration and roadmap support for post-quantum algorithms (authentication and signing) and secure PQC key storage inside the device or service.
+  </Accordion>
+
+  <Accordion title="Hierarchical deterministic (HD) key derivation">
+    Wallet-style hierarchical key trees (BIP32-like concepts adapted to this platform) for issuing per-user, per-tenant, or per-purpose subkeys without exporting the root secret — for example embedded wallet logic, tenant isolation, firmware signing trees, or large fleet deployments.
+  </Accordion>
+
+  <Accordion title="Cryptographically signed audit trail">
+    High-assurance logging of sensitive actions — key use, provisioning, PIN resets, revocations — with integrity protection for forensic and compliance requirements.
+  </Accordion>
+
+  <Accordion title="Dual-control / two-person approval (four-eyes)">
+    Multi-party authorization for high-risk actions such as firmware signing, key export, or critical configuration changes. Standard in high-assurance and regulated environments.
+  </Accordion>
+
+  <Accordion title="Secure key escrow / disaster recovery">
+    Split-secret or escrowed backup strategies so you do not lose critical signing keys if a single administrator disappears or hardware is lost.
+  </Accordion>
+
+  <Accordion title="Release-signing / supply-chain hardening">
+    Reference tooling and process so every production firmware build is signed with hardware-backed keys, proving origin and preventing tampering in transit or at manufacturing.
+  </Accordion>
+
+  <Accordion title="Policy-locked hardened mode (FIPS-style profile)">
+    Restricted algorithms, debug disabled, no raw key export, and tamper-evident configuration for regulated and high-assurance deployments.
+  </Accordion>
+
+  <Accordion title="Priority support / security response SLA">
+    A direct line and guaranteed response window for production-impacting security issues.
+  </Accordion>
+
+  <Accordion title="White-label demo bundle">
+    Branded demo firmware and a safe onboarding script so you can demonstrate "your product" to your own customers without exposing real production secrets.
+  </Accordion>
+</AccordionGroup>
+
+## Licensing models
+
+- **Internal Use License** — Internal production use within one legal entity, including internal private-cloud and virtualized deployments for multiple internal teams. Optional enterprise components can be added as needed.
+- **OEM / Redistribution / Service License** — Integration into a product or appliance you ship to customers, or operating Pico FIDO as a managed service or hosted feature for external clients or third parties. Optional enterprise components (attestation branding, PQC, HD key derivation, multi-tenant hardening, audit trail, etc.) can be added as required.
+
+Pricing depends on scope, fleet size, number of users or tenants, regulatory requirements, and which optional components you select.
+
+## Request a quote
+
+Send an email to `pol@henarejos.me` with the subject line:
+
+```
+ENTERPRISE LICENSE <your company name>
+```
+
+Include:
+
+- Company name and country
+- Intended use: internal private deployment, or OEM / external service to third parties
+- Approximate scale (number of devices or tokens, number of users or tenants)
+- Which optional components you are interested in
+
+You will receive a short commercial license agreement naming your company, access to the base package and any agreed optional components, and scheduling for the onboarding call.

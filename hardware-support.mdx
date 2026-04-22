@@ -1,0 +1,72 @@
+---
+title: "Supported boards and hardware for Pico FIDO"
+description: "Compare the Raspberry Pi Pico, Pico 2, and ESP32-S3 microcontrollers for running Pico FIDO, including security capabilities and flashing methods."
+---
+
+Pico FIDO runs on three microcontroller families, each with different security capabilities and flashing workflows. All three support the full FIDO2 and CTAP 2.1 feature set, but only the RP2350 and ESP32-S3 provide hardware-backed key protection. Choose your hardware based on your security requirements and what you have available.
+
+## Supported MCUs
+
+| Board | MCU | Secure Boot | OTP key storage | Flash method |
+|---|---|---|---|---|
+| Raspberry Pi Pico | RP2040 | No | No | BOOTSEL + UF2 |
+| Raspberry Pi Pico 2 | RP2350 | Yes | Yes | BOOTSEL + UF2 |
+| ESP32-S3 boards | ESP32-S3 | Yes | Yes | ESP32 Flasher (web) |
+
+### Raspberry Pi Pico (RP2040)
+
+The original Raspberry Pi Pico is the most widely available and lowest-cost option. It runs all Pico FIDO features including FIDO2, OATH, and OTP. Flash it by holding **BOOTSEL**, plugging in via USB, and copying a `.uf2` file to the mass storage device that appears.
+
+<Warning>
+  The RP2040 does not support hardware-backed encryption for its flash memory. Any data stored on the device — including private keys and the master key encryption key (MKEK) — can be accessed via a flash memory dump if someone has physical access to your device. If your RP2040 device is stolen, all stored credentials and secret keys should be considered compromised. For a threat model that includes physical theft, use an RP2350 or ESP32-S3 device instead.
+</Warning>
+
+### Raspberry Pi Pico 2 (RP2350)
+
+The Pico 2 uses the RP2350 MCU, which adds hardware security features absent from the RP2040. When Secure Boot is enabled, the device verifies firmware signatures at boot time. The MKEK can be stored in one-time programmable (OTP) memory, which is inaccessible from outside trusted secure code, protecting all resident keys and seeds from flash dumps.
+
+<Note>
+  On RP2350, the MKEK is stored in OTP memory and used to encrypt all private and secret keys on the flash. Even if someone dumps the flash, the encrypted keys cannot be decrypted without the OTP-resident master key. Enable Secure Boot during your build to take full advantage of this protection. See [building for Raspberry Pi Pico](/building/raspberry-pi-pico) for build-time configuration.
+</Note>
+
+### ESP32-S3
+
+ESP32-S3 boards support the same Secure Boot and OTP key storage capabilities as the RP2350. Flashing uses a different workflow: instead of drag-and-drop UF2, you use the browser-based [ESP32 Flasher](https://www.picokeys.com/esp32-flasher/) tool, which requires no local toolchain. See [building for ESP32](/building/esp32) for source builds.
+
+## VID/PID support
+
+Pre-built firmware ships with VID/PID `2E8A:10FE`, granted by the Raspberry Pi Foundation. When building from source, you can pass the `VIDPID` CMake flag to produce firmware that identifies as a known device profile:
+
+```sh
+cmake .. -DPICO_BOARD=pico2 -DVIDPID=Yubikey5
+```
+
+Supported `VIDPID` values:
+
+| Value | Description |
+|---|---|
+| `NitroHSM` | Nitrokey HSM |
+| `NitroFIDO2` | Nitrokey FIDO2 |
+| `NitroStart` | Nitrokey Start |
+| `NitroPro` | Nitrokey Pro |
+| `Nitro3` | Nitrokey 3 |
+| `Yubikey5` | YubiKey 5 series |
+| `YubikeyNeo` | YubiKey NEO |
+| `YubiHSM` | YubiHSM |
+| `Gnuk` | Gnuk token |
+| `GnuPG` | GnuPG compatible |
+
+<Warning>
+  You are not authorized to distribute binaries with a VID/PID that you do not own. Use these profiles for internal and personal use only, or obtain your own USB identifiers for redistribution.
+</Warning>
+
+## Build guides
+
+<CardGroup cols={2}>
+  <Card title="Build for Raspberry Pi Pico" icon="hammer" href="/building/raspberry-pi-pico">
+    Compile and flash firmware for RP2040 and RP2350 boards
+  </Card>
+  <Card title="Build for ESP32" icon="microchip" href="/building/esp32">
+    Set up the ESP-IDF toolchain and flash your ESP32-S3 board
+  </Card>
+</CardGroup>

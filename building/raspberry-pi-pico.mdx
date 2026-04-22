@@ -1,0 +1,88 @@
+---
+title: 'Build Pico FIDO firmware for Raspberry Pi Pico'
+description: 'Compile and flash Pico FIDO firmware onto a Raspberry Pi Pico board using the Pico SDK, CMake, and the arm-none-eabi-gcc toolchain.'
+---
+
+Building Pico FIDO from source lets you customize USB identifiers, enable or disable application modules, and target specific boards such as `pico` or `pico2`. If you only need a standard firmware image, you can download a pre-built UF2 file from the [releases page](https://github.com/polhenarejos/pico-fido/releases) instead.
+
+## Prerequisites
+
+Before you start, make sure the following tools are installed and accessible on your `PATH`:
+
+- [Raspberry Pi Pico SDK](https://github.com/raspberrypi/pico-sdk) — set `PICO_SDK_PATH` to its location
+- `arm-none-eabi-gcc` toolchain
+- CMake 3.13 or later
+- Git
+
+## Build steps
+
+<Steps>
+  <Step title="Clone the repository">
+    Clone Pico FIDO and initialize all submodules:
+
+    ```bash
+    git clone https://github.com/polhenarejos/pico-fido
+    cd pico-fido
+    git submodule update --init --recursive
+    ```
+  </Step>
+
+  <Step title="Create a build directory">
+    ```bash
+    mkdir build && cd build
+    ```
+  </Step>
+
+  <Step title="Configure with CMake">
+    Run CMake, passing your Pico SDK path and any optional parameters:
+
+    ```bash
+    PICO_SDK_PATH=/path/to/pico-sdk cmake .. \
+      -DPICO_BOARD=board_type \
+      -DUSB_VID=0x1234 \
+      -DUSB_PID=0x5678
+    ```
+
+    `PICO_BOARD`, `USB_VID`, and `USB_PID` are all optional. When omitted, the build defaults to the `pico` board and the VID/PID pair `FEFF:FCFD`.
+
+    You can also pass `VIDPID=value` to use a known vendor preset instead of specifying raw IDs. Supported values are:
+
+    | Value | Device |
+    |---|---|
+    | `NitroHSM` | Nitrokey HSM |
+    | `NitroFIDO2` | Nitrokey FIDO2 |
+    | `NitroStart` | Nitrokey Start |
+    | `NitroPro` | Nitrokey Pro |
+    | `Nitro3` | Nitrokey 3 |
+    | `Yubikey5` | YubiKey 5 |
+    | `YubikeyNeo` | YubiKey NEO |
+    | `YubiHSM` | YubiHSM |
+    | `Gnuk` | Gnuk token |
+    | `GnuPG` | GnuPG |
+
+    ```bash
+    PICO_SDK_PATH=/path/to/pico-sdk cmake .. -DVIDPID=Yubikey5
+    ```
+  </Step>
+
+  <Step title="Build the firmware">
+    ```bash
+    make
+    ```
+
+    After a successful build, the output file `pico_fido.uf2` appears in the `build/` directory.
+  </Step>
+
+  <Step title="Flash the firmware">
+    1. Hold the **BOOTSEL** button on your Pico board while plugging it into your computer over USB.
+    2. A USB mass storage device named **RPI-RP2** (or **RP2350** on Pico 2) appears on your system.
+    3. Copy `pico_fido.uf2` to that drive.
+    4. The drive unmounts automatically and the board resets with the new firmware. A blinking LED confirms the device is ready.
+  </Step>
+</Steps>
+
+## VID/PID distribution restrictions
+
+<Note>
+  You may use any VID/PID for internal development and testing. However, you are not authorized to distribute firmware binaries that carry a VID/PID you do not own. Pre-built UF2 files ship with `2E8A:10FE`, a VID/PID granted by Raspberry Pi.
+</Note>

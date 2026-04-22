@@ -1,0 +1,82 @@
+---
+title: "Secure Boot and OTP hardware key protection on Pico FIDO"
+description: "How RP2350 and ESP32-S3 use Secure Boot and OTP memory to protect the Master Key Encryption Key and prevent firmware tampering or key extraction."
+---
+
+Secure Boot is a hardware feature available on RP2350 and ESP32-S3 that verifies the cryptographic signature of your firmware before executing it. Combined with One-Time Programmable (OTP) memory, it ensures that the Master Key Encryption Key (MKEK) — which encrypts all resident keys and seeds — is stored in a hardware-protected region that non-secure code cannot access. This makes Pico FIDO resistant to firmware replacement attacks and flash memory dumps.
+
+<Warning>
+  Secure Boot is not available on RP2040. If you need hardware-backed key protection, you must use an RP2350 or ESP32-S3 board.
+</Warning>
+
+## How it works
+
+When you build firmware with Secure Boot enabled, the build process signs the firmware binary using an EC private key that you provide. The corresponding public key is written into OTP memory during the first boot. On every subsequent boot, the bootloader verifies the firmware signature against the public key in OTP. If the signature does not match, the device refuses to boot.
+
+The MKEK is written to OTP memory at initialization time. OTP memory is physically one-time writable — once a value is written, it cannot be erased or overwritten, even by firmware updates. This means the MKEK can never be extracted through software, even if an attacker manages to run arbitrary code on the device.
+
+<Warning>
+  Once OTP memory is programmed, it cannot be erased or reset. If you lose the private key used to sign your firmware, you will be unable to update firmware on that device.
+</Warning>
+
+## Secure Lock
+
+Secure Lock is an additional protection layer that marks an OTP memory region as inaccessible from non-secure code. Even if someone attempts to read the MKEK region through a debug interface or compromised firmware, the hardware blocks the access. You can manage the lock state using the `CTAP_VENDOR_UNLOCK` (`0x03`) vendor command with an admin PIN.
+
+## Enabling Secure Boot during build
+
+<Note>
+  Secure Boot is automatically activated when you pass `SECURE_BOOT_PKEY` to cmake. No additional configuration flags are required.
+</Note>
+
+<Steps>
+  <Step title="Generate an EC private key">
+    Generate a P-256 EC private key that will be used to sign your firmware. Store this key securely — you need it for every future firmware update.
+
+    ```bash
+    openssl ecparam -name prime256v1 -genkey -noout -out ec_private_key.pem
+    ```
+  </Step>
+  <Step title="Clone the repository and submodules">
+    ```bash
+    git clone https://github.com/polhenarejos/pico-fido
+    cd pico-fido
+    git submodule update --init --recursive
+    ```
+  </Step>
+  <Step title="Configure the build with your key">
+    Pass `SECURE_BOOT_PKEY` pointing to your private key file. Replace `pico2` with your target board.
+
+    ```bash
+    mkdir build && cd build
+    PICO_SDK_PATH=/path/to/pico-sdk cmake .. \
+      -DPICO_BOARD=pico2 \
+      -DSECURE_BOOT_PKEY=/path/to/ec_private_key.pem
+    ```
+  </Step>
+  <Step title="Build the firmware">
+    ```bash
+    make -j$(nproc)
+    ```
+
+    The resulting `pico_fido.uf2` contains a signed firmware image. On first boot, the device writes the corresponding public key and MKEK into OTP memory.
+  </Step>
+  <Step title="Flash the device">
+    Hold **BOOTSEL** while plugging in your Pico, then copy `pico_fido.uf2` to the USB mass storage device that appears. The device reboots automatically and verifies the signature before starting.
+  </Step>
+</Steps>
+
+## Rescue interface
+
+If your device becomes unresponsive or is no longer detected by the host, the rescue interface allows you to recover it without losing your stored credentials. The rescue interface bypasses normal firmware execution and exposes a minimal recovery mode. This is particularly useful if a partial firmware update leaves the device in an inconsistent state.
+
+See [backup and recovery](/security/backup-recovery) for restoring credentials after a device replacement.
+
+## Key storage summary
+
+| Storage location | RP2040 | RP2350 / ESP32-S3 |
+|---|---|---|
+| MKEK in flash | Yes (unprotected) | No |
+| MKEK in OTP | No | Yes |
+| Accessible from non-secure code | Yes | No |
+| Survives firmware update | Yes | Yes (immutable) |

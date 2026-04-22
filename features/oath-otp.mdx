@@ -1,0 +1,112 @@
+---
+title: "OATH TOTP/HOTP and Yubikey OTP on Pico FIDO"
+description: "Pico FIDO implements the YKOATH protocol for TOTP and HOTP codes, and Yubikey OTP with challenge-response and emulated keyboard output."
+---
+
+Pico FIDO bundles two distinct one-time password applications alongside its FIDO2 core. The OATH application stores TOTP and HOTP credentials compatible with the Yubico Authenticator desktop app and `ykman`. The OTP application emulates a Yubikey One Time Password slot, typing a generated code directly into the host as a keyboard device when you press the button. Both applications are active simultaneously and selected by their respective AID or HID interface.
+
+<Tabs>
+  <Tab title="OATH application">
+
+## OATH application
+
+The OATH application implements the YKOATH protocol. You select it with AID `A0000005272101`.
+
+### Credential types
+
+Pico FIDO stores up to **`MAX_OATH_CRED` = 255** OATH credentials. Each credential is either:
+
+- **TOTP** (`0x20`) — time-based, generating a new code every 30 seconds from the current Unix timestamp
+- **HOTP** (`0x10`) — counter-based, incrementing a stored counter on each code generation
+
+### Supported algorithms
+
+| Algorithm | Code | Description |
+|---|---|---|
+| HMAC-SHA1 | `0x01` | Used as the default for password-protected vaults |
+| HMAC-SHA256 | `0x02` | Stronger HMAC, recommended for new credentials |
+| HMAC-SHA512 | `0x03` | Maximum HMAC strength |
+
+### Credential properties
+
+Each credential can carry one or more property flags:
+
+- **`PROP_TOUCH`** (`0x02`) — the device requires a button press before generating a code for this credential
+- **`PROP_PIN`** (`0x03`) — the credential is additionally protected by the OATH PIN
+
+### Password protection
+
+The OATH application supports a separate password (vault password) that encrypts the credential secrets at rest. When a password is set, the device issues a random 8-byte challenge on selection. The client authenticates by returning `HMAC-SHA1(password-key, challenge)` before any credential operation is allowed.
+
+### Compatible tools
+
+<CardGroup cols={2}>
+  <Card title="Yubico Authenticator" icon="mobile">
+    The official Yubico Authenticator desktop and mobile app works with Pico FIDO over USB without any configuration.
+  </Card>
+  <Card title="ykman" icon="terminal">
+    Use `ykman oath accounts list`, `ykman oath accounts add`, and `ykman oath accounts code` to manage and generate OATH credentials.
+  </Card>
+</CardGroup>
+
+### Example: adding a TOTP credential with ykman
+
+```bash
+ykman oath accounts add --totp --algorithm SHA256 --digits 6 MyService JBSWY3DPEHPK3PXP
+```
+
+### Example: generating a code
+
+```bash
+ykman oath accounts code MyService
+```
+
+  </Tab>
+  <Tab title="OTP application">
+
+## OTP application
+
+The OTP application emulates the Yubikey One Time Password interface. It operates over the HID protocol and does not require the OATH AID.
+
+### How it works
+
+When you press the hardware button, Pico FIDO acts as a **USB HID keyboard** and types the OTP string directly into whatever application or text field has focus on the host. No driver or companion app is needed—the OTP appears as if you typed it.
+
+### Slots
+
+Two OTP slot configurations are supported (`CONFIG1_VALID`, `CONFIG2_VALID`). Each slot can be independently configured for:
+
+- **Yubikey OTP** — the classic Modhex-encoded OTP format, combining a fixed prefix, a secret UID, and a counter encrypted with AES-128
+- **HMAC-SHA1 challenge-response** (`CHAL_RESP`) — the host sends a challenge; the device responds with `HMAC-SHA1(secret, challenge)` for offline verification
+- **OATH HOTP** (`OATH_HOTP`) — generates an HOTP code directly from the slot's key and counter
+- **Static password** (`STATIC_TICKET`) — types a fixed string, useful for long passwords
+
+### Touch behavior
+
+Each slot can require a button press (`CONFIG1_TOUCH`, `CONFIG2_TOUCH`). Without touch enforcement, inserting the device and invoking the slot immediately generates an output.
+
+### Keyboard formatting flags
+
+The output string can include tab characters, carriage returns, and configurable inter-key delays using ticket flags such as `TAB_FIRST`, `APPEND_TAB1`, `APPEND_CR`, `APPEND_DELAY1`, and `APPEND_DELAY2`.
+
+### Compatible tools
+
+<CardGroup cols={2}>
+  <Card title="ykman" icon="terminal">
+    Configure OTP slots with `ykman otp yubiotp`, `ykman otp chalresp`, or `ykman otp static`.
+  </Card>
+  <Card title="nitropy" icon="terminal">
+    Nitrokey's `nitropy` tool also supports OTP slot configuration when building with a Nitrokey VID/PID profile.
+  </Card>
+</CardGroup>
+
+### Example: configuring a challenge-response slot
+
+```bash
+ykman otp chalresp --generate 2
+```
+
+This generates a random HMAC-SHA1 secret and programs slot 2 for challenge-response mode.
+
+  </Tab>
+</Tabs>

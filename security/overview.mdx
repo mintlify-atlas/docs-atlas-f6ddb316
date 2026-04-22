@@ -1,0 +1,68 @@
+---
+title: "Pico FIDO security model and threat considerations"
+description: "How Pico FIDO protects your credentials: hardware-backed key encryption, PIN lockout, user presence enforcement, and enterprise attestation."
+---
+
+Pico FIDO is designed around a layered security model that combines hardware-enforced key protection, physical user presence verification, and PIN-based user verification. The level of protection available to you depends on the microcontroller you use: RP2350 and ESP32-S3 offer hardware-backed security through Secure Boot and OTP memory, while RP2040 relies on software-only protections that are vulnerable to physical attacks.
+
+## Two-tier security model
+
+All private and secret keys stored on the device are encrypted with a Master Key Encryption Key (MKEK). The MKEK itself is what determines the overall security posture of your device.
+
+On RP2350 and ESP32-S3, the MKEK is stored in One-Time Programmable (OTP) memory — a hardware region that is physically inaccessible from non-secure code. Even if an attacker dumps the flash contents, they cannot read the MKEK and therefore cannot decrypt any resident keys or seeds.
+
+On RP2040, there is no equivalent hardware isolation. The MKEK is stored in flash memory alongside your credentials. An attacker with physical access can dump both the encrypted keys and the MKEK, giving them everything they need to recover your private keys.
+
+<Warning>
+  If you use an RP2040-based board, physical access to your device is equivalent to access to your credentials. Use RP2350 or ESP32-S3 for any deployment where physical security cannot be guaranteed.
+</Warning>
+
+## Platform comparison
+
+| Feature | RP2040 | RP2350 | ESP32-S3 |
+|---|---|---|---|
+| Secure Boot | No | Yes | Yes |
+| OTP key storage | No | Yes | Yes |
+| MKEK protected from flash dump | No | Yes | Yes |
+| Secure Lock | No | Yes | Yes |
+| Suitable for production use | Limited | Yes | Yes |
+
+## Authentication flags
+
+Every authenticator response includes a flags byte that communicates what verification occurred during the operation:
+
+| Flag | Constant | Value | Meaning |
+|---|---|---|---|
+| User Presence | `FIDO2_AUT_FLAG_UP` | `0x01` | Button was pressed |
+| User Verified | `FIDO2_AUT_FLAG_UV` | `0x04` | PIN was verified |
+| Attested Data | `FIDO2_AUT_FLAG_AT` | `0x40` | Attestation data included |
+| Extension Data | `FIDO2_AUT_FLAG_ED` | `0x80` | Extension data included |
+
+## Physical user presence
+
+Sensitive operations — such as creating a credential or generating an assertion — require you to physically press the button on the device. This ensures that no software running on the host can silently authorize operations without your knowledge.
+
+## PIN protection
+
+You can configure a PIN to enable user verification (UV). Once set, operations that require UV will prompt for the PIN through the platform. The device enforces a maximum of `MAX_PIN_RETRIES = 8` failed attempts before locking. After lockout, the device cannot be used for PIN-protected operations until it is reset.
+
+## Enterprise attestation
+
+Pico FIDO supports enterprise attestation, which allows organizations to verify that an assertion comes from a known, policy-compliant device. Two option flags control this behavior:
+
+- `FIDO2_OPT_EA` (`0x01`) — Enterprise Attestation enabled
+- `FIDO2_OPT_AUV` (`0x02`) — Always require User Verification
+
+## Explore security topics
+
+<CardGroup cols={3}>
+  <Card title="Secure Boot" icon="lock" href="/security/secure-boot">
+    Enable hardware-backed key protection on RP2350 and ESP32-S3
+  </Card>
+  <Card title="PIN protection" icon="hashtag" href="/security/pin-protection">
+    Configure PIN policies, retries, and user verification tokens
+  </Card>
+  <Card title="Backup & recovery" icon="rotate-left" href="/security/backup-recovery">
+    Back up your device seed with a 24-word mnemonic phrase
+  </Card>
+</CardGroup>

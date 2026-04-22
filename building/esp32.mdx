@@ -1,0 +1,117 @@
+---
+title: 'Build Pico FIDO firmware for ESP32-S3 boards'
+description: 'Compile and flash Pico FIDO firmware onto an ESP32 board using the ESP-IDF framework, with optional post-quantum cryptography support.'
+---
+
+Pico FIDO supports ESP32-S3 boards in addition to Raspberry Pi Pico hardware. The ESP32 build uses the ESP-IDF CMake integration rather than the Pico SDK, and exposes an optional post-quantum cryptography (`ENABLE_PQC`) flag not available on RP2040/RP2350 targets.
+
+<Tip>
+  For most users, the [ESP32 Flasher](https://www.picokeys.com/esp32-flasher/) at picokeys.com is the fastest way to get firmware onto your ESP32-S3 board. Use the manual build path below only if you need custom configuration or post-quantum support.
+</Tip>
+
+## Prerequisites
+
+- [ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/get-started/) v5.x installed and sourced (`source $IDF_PATH/export.sh`)
+- Python 3.8 or later (required by ESP-IDF tooling)
+- Git
+
+## Build steps
+
+<Steps>
+  <Step title="Clone the repository">
+    Clone Pico FIDO and initialize all submodules:
+
+    ```bash
+    git clone https://github.com/polhenarejos/pico-fido
+    cd pico-fido
+    git submodule update --init --recursive
+    ```
+  </Step>
+
+  <Step title="Source the ESP-IDF environment">
+    ```bash
+    source $IDF_PATH/export.sh
+    ```
+  </Step>
+
+  <Step title="Configure the build">
+    Run `idf.py set-target` to select your chip, then optionally configure options:
+
+    ```bash
+    idf.py set-target esp32s3
+    ```
+
+    To enable post-quantum cryptography, set `ENABLE_PQC=1` at the CMake level:
+
+    ```bash
+    idf.py -DENABLE_PQC=1 build
+    ```
+
+    When `ENABLE_PQC` is enabled, the build automatically includes the following ML-KEM components:
+
+    - `pico-keys-sdk/config/esp32/components/mlkem512`
+    - `pico-keys-sdk/config/esp32/components/mlkem768`
+    - `pico-keys-sdk/config/esp32/components/mlkem1024`
+  </Step>
+
+  <Step title="Build the firmware">
+    ```bash
+    idf.py build
+    ```
+
+    The ESP-IDF build system detects `ESP_PLATFORM` and uses the following component directories automatically:
+
+    - `src/fido` — FIDO application source
+    - `pico-keys-sdk/config/esp32/components/pico-keys-sdk` — SDK layer
+    - `pico-keys-sdk/config/esp32/components/tinycbor` — CBOR library
+  </Step>
+
+  <Step title="Flash and monitor">
+    Connect your ESP32-S3 board and run:
+
+    ```bash
+    idf.py flash monitor
+    ```
+
+    Replace the default port if needed:
+
+    ```bash
+    idf.py -p /dev/ttyUSB0 flash monitor
+    ```
+  </Step>
+</Steps>
+
+## SDK defaults (`sdkconfig.defaults`)
+
+The repository includes an `sdkconfig.defaults` file that pre-configures the ESP-IDF project for Pico FIDO. Key settings include:
+
+```ini
+CONFIG_TINYUSB=y
+CONFIG_TINYUSB_TASK_STACK_SIZE=16384
+
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="pico-keys-sdk/config/esp32/partitions.csv"
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+
+CONFIG_MBEDTLS_CMAC_C=y
+CONFIG_MBEDTLS_CHACHA20_C=y
+CONFIG_MBEDTLS_POLY1305_C=y
+CONFIG_MBEDTLS_CHACHAPOLY_C=y
+CONFIG_MBEDTLS_HKDF_C=y
+CONFIG_MBEDTLS_HARDWARE_ECC=y
+CONFIG_MBEDTLS_HARDWARE_GCM=y
+CONFIG_MBEDTLS_HARDWARE_SHA=y
+CONFIG_MBEDTLS_HARDWARE_AES=y
+CONFIG_MBEDTLS_SHA512_C=y
+CONFIG_MBEDTLS_TLS_DISABLED=y
+```
+
+These defaults disable Wi-Fi and TLS to minimize binary size, enable hardware-accelerated cryptography (AES, GCM, SHA, ECC), enable ChaCha20-Poly1305 and HKDF for Pico FIDO's cryptographic operations, and configure a custom partition table at `pico-keys-sdk/config/esp32/partitions.csv`.
+
+## Secure Boot and Secure Lock
+
+<Note>
+  ESP32-S3 supports Secure Boot and Secure Lock, which store the master key encryption key (MKEK) in one-time programmable (OTP) memory inaccessible from outside secure code. See the [Secure Boot](/security/secure-boot) documentation for setup instructions.
+</Note>

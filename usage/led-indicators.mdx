@@ -1,0 +1,30 @@
+---
+title: "Understanding Pico FIDO LED status indicators"
+description: "Learn what each LED blink pattern on your Pico FIDO device means, from idle sleep to active processing and user confirmation prompts."
+---
+
+Pico FIDO uses its onboard LED to communicate the device's current state at a glance. Each blink pattern corresponds to a specific mode, so you always know whether the device is sleeping, ready, busy, or waiting for you to act. Understanding these patterns helps you interact with the device confidently and troubleshoot unexpected behavior quickly.
+
+## LED states
+
+| State | Pattern | Description |
+|---|---|---|
+| Press to confirm | Almost always on; goes off for 100 ms every second | The device is waiting for you to confirm user presence by pressing the button |
+| Idle mode | Almost always off; goes on for 500 ms every second | The device is sleeping and waiting for a command from the host |
+| Active mode | Blinks 4 times per second | The device is awake and ready to receive a command |
+| Processing | Blinks 20 times per second | The device is busy processing a command and cannot accept new input |
+
+<Tip>
+When you see the "press to confirm" pattern — LED almost always on, briefly flashing off — tap the physical button on your device. Many FIDO2 operations require proof of user presence before the authenticator completes the operation.
+</Tip>
+
+## LED customization
+
+You can adjust LED behavior using the [PicoKey App](https://www.picokeys.com/picokeyapp/) or by sending vendor configuration commands directly. Two configuration keys control LED hardware behavior:
+
+| Constant | Key | Description |
+|---|---|---|
+| `CTAP_CONFIG_PHY_LED_BTNESS` | `0x76a85945985d02fd` | Sets the LED brightness level |
+| `CTAP_CONFIG_PHY_LED_GPIO` | `0x7b392a394de9f948` | Sets the GPIO pin used for the LED |
+
+Both settings are applied through the CTAP vendor configuration interface. See [Vendor configuration and device customization](/usage/vendor-configuration) for details on how to send these commands.

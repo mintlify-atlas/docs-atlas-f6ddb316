@@ -1,0 +1,53 @@
+---
+title: "Vendor configuration and device customization"
+description: "Configure Pico FIDO beyond the CTAP2 standard using vendor-specific commands to control attestation, PIN policy, LED behavior, and VID/PID identity."
+---
+
+Pico FIDO exposes a set of vendor-specific CTAP configuration commands that let you customize device behavior beyond what the CTAP2 standard defines. These commands control features like enterprise attestation, PIN policy, physical LED settings, and USB identity. You send them through the standard `authenticatorConfig` (`0x0D`) command using the vendor subcommand (`0xFF`) along with a `vendorCommandId` that identifies the specific operation.
+
+<Warning>
+All vendor configuration commands require a valid PIN/UV auth token with the `ACFG` (authenticator configuration) permission, or an admin PIN for enterprise-restricted operations. Sending these commands without the correct credentials will result in a `CTAP2_ERR_PIN_AUTH_INVALID` error.
+</Warning>
+
+## CTAP config subcommands
+
+These constants are used as the `vendorCommandId` field when sending a vendor config request (`subcommand = 0xFF`).
+
+| Constant | Key | Description |
+|---|---|---|
+| `CTAP_CONFIG_AUT_ENABLE` | `0x03e43f56b34285e2` | Re-enable the authenticator after it has been disabled |
+| `CTAP_CONFIG_AUT_DISABLE` | `0x1831a40f04a25ed9` | Disable the authenticator, preventing credential operations |
+| `CTAP_CONFIG_EA_UPLOAD` | `0x66f2a674c29a8dcf` | Upload an enterprise attestation certificate to the device |
+| `CTAP_CONFIG_PIN_POLICY` | `0x6c07d70fe96c3897` | Set a PIN policy (minimum length, complexity requirements) |
+| `CTAP_CONFIG_PHY_VIDPID` | `0x6fcb19b0cbe3acfa` | Change the USB VID/PID reported by the device at runtime |
+| `CTAP_CONFIG_PHY_LED_BTNESS` | `0x76a85945985d02fd` | Set the LED brightness level |
+| `CTAP_CONFIG_PHY_LED_GPIO` | `0x7b392a394de9f948` | Set the GPIO pin number used to drive the LED |
+| `CTAP_CONFIG_PHY_OPTS` | `0x269f3b09eceb805f` | Set miscellaneous physical device options |
+
+## CTAP vendor commands
+
+In addition to config subcommands, Pico FIDO supports a set of higher-level vendor commands available through `CTAP_VENDOR_CBOR` (`CTAPHID_VENDOR_FIRST + 1`). These operate at the transport level rather than through `authenticatorConfig`.
+
+| Constant | Value | Description |
+|---|---|---|
+| `CTAP_VENDOR_BACKUP` | `0x01` | Backup or restore device credentials using a 24-word mnemonic |
+| `CTAP_VENDOR_MSE` | `0x02` | Manage Security Environment — set up key agreement for secure channel operations |
+| `CTAP_VENDOR_UNLOCK` | `0x03` | Unlock or securely lock the device to protect against flash dumps |
+| `CTAP_VENDOR_EA` | `0x04` | Enterprise attestation — issue or validate enterprise-signed attestations |
+| `CTAP_VENDOR_ADMIN_PIN` | `0x08` | Set or verify an admin PIN required for enterprise-restricted operations |
+
+## VID/PID customization
+
+You can change the USB VID/PID the device reports using `CTAP_CONFIG_PHY_VIDPID` (`0x6fcb19b0cbe3acfa`). This is useful when you need the device to be recognized by a specific driver or tool.
+
+The default firmware ships with VID/PID `2E8A:10FE` (granted by Raspberry Pi). You are free to use any VID/PID for internal testing and development. However, you must own the VID/PID you use if you plan to distribute firmware or devices that report it — redistributing a binary with a VID/PID you do not own is not authorized.
+
+## Enterprise attestation
+
+The `CTAP_CONFIG_EA_UPLOAD` command (`0x66f2a674c29a8dcf`) lets you upload a custom enterprise attestation certificate to the device. Once uploaded, the device uses this certificate to sign attestation statements, allowing relying parties in your organization to verify that a credential was created on a trusted device.
+
+Uploading an enterprise attestation certificate requires the admin PIN (`CTAP_VENDOR_ADMIN_PIN`). The certificate must fit within the maximum attestation certificate size of 2048 bytes.
+
+## PIN policy
+
+Use `CTAP_CONFIG_PIN_POLICY` (`0x6c07d70fe96c3897`) to enforce a PIN policy on the device. The policy can specify a minimum PIN length, which the device will enforce when users set or change their PIN. This setting is intended for enterprise deployments where a minimum credential strength is required.

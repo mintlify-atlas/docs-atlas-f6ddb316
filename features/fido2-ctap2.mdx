@@ -1,0 +1,107 @@
+---
+title: "FIDO2, CTAP 2.1, and WebAuthn authenticator features"
+description: "Pico FIDO implements CTAP 2.1, CTAP 1 (U2F), and WebAuthn on a Raspberry Pi Pico or ESP32, with a full set of CBOR commands, algorithms, and curves."
+---
+
+Pico FIDO turns your Raspberry Pi Pico or ESP32 into a fully compliant FIDO2 authenticator. It speaks CTAP 2.1 and CTAP 1 (U2F) over USB HID, satisfies the WebAuthn relying-party requirements, and exposes the complete set of CBOR commands defined in the specification—from credential creation to large-blob writes. Every operation that requires user presence is gated behind a physical button press, and user verification is handled by a PIN with up to eight retries.
+
+## Protocol versions
+
+Pico FIDO advertises the following protocol strings in the `authenticatorGetInfo` response:
+
+- `U2F_V2` — CTAP 1 / U2F backwards compatibility
+- `FIDO_2_0` — CTAP 2.0 baseline
+- `FIDO_2_1` — CTAP 2.1 with full extension support
+- `FIDO_2_2` — CTAP 2.2 draft features
+
+## CBOR commands
+
+The following CTAP CBOR commands are implemented in `ctap.h`:
+
+| Command | Code | Description |
+|---|---|---|
+| `CTAP_MAKE_CREDENTIAL` | `0x01` | Register a new credential |
+| `CTAP_GET_ASSERTION` | `0x02` | Authenticate with an existing credential |
+| `CTAP_GET_INFO` | `0x04` | Return authenticator capabilities |
+| `CTAP_CLIENT_PIN` | `0x06` | Set, change, or verify a PIN |
+| `CTAP_RESET` | `0x07` | Factory-reset the device |
+| `CTAP_GET_NEXT_ASSERTION` | `0x08` | Retrieve additional assertions from a previous call |
+| `CTAP_CREDENTIAL_MGMT` | `0x0A` | Enumerate and delete resident credentials |
+| `CTAP_SELECTION` | `0x0B` | Prompt the user to select this device |
+| `CTAP_LARGE_BLOBS` | `0x0C` | Read or write large-blob data |
+| `CTAP_CONFIG` | `0x0D` | Configure authenticator-wide settings |
+
+## Supported algorithms and curves
+
+Pico FIDO supports a broad set of COSE algorithms and elliptic curves, defined in `fido.h`:
+
+| Algorithm | COSE ID | Description |
+|---|---|---|
+| ES256 | `-7` | ECDSA with SHA-256 |
+| EdDSA | `-8` | Edwards-curve Digital Signature Algorithm |
+| ES384 | `-35` | ECDSA with SHA-384 |
+| ES512 | `-36` | ECDSA with SHA-512 |
+| ES256K | `-47` | ECDSA with SHA-256 on secp256k1 |
+| RS256 | `-257` | RSASSA-PKCS1-v1_5 with SHA-256 |
+| RS384 | `-258` | RSASSA-PKCS1-v1_5 with SHA-384 |
+| RS512 | `-259` | RSASSA-PKCS1-v1_5 with SHA-512 |
+| ESB256 | `-265` | ECDSA with SHA-256 on BP256r1 |
+| ESB384 | `-267` | ECDSA with SHA-384 on BP384r1 |
+| ESB512 | `-268` | ECDSA with SHA-512 on BP512r1 |
+
+| Curve | ID | Description |
+|---|---|---|
+| P-256 | `1` | NIST P-256 (secp256r1) |
+| P-384 | `2` | NIST P-384 (secp384r1) |
+| P-521 | `3` | NIST P-521 (secp521r1) |
+| X25519 | `4` | Diffie-Hellman on Curve25519 |
+| X448 | `5` | Diffie-Hellman on Curve448 |
+| Ed25519 | `6` | EdDSA on Curve25519 |
+| Ed448 | `7` | EdDSA on Curve448 |
+| secp256k1 | `8` | ECDSA on secp256k1 (Bitcoin curve) |
+| BP256R1 | `9` | Brainpool P-256r1 |
+| BP384R1 | `10` | Brainpool P-384r1 |
+| BP512R1 | `11` | Brainpool P-512r1 |
+
+<Note>
+  secp256k1 support is configurable at build time via `PHY_CURVE_SECP256K1`. EdDSA curves require `MBEDTLS_EDDSA_C` to be enabled.
+</Note>
+
+## PIN UV auth token permissions
+
+PIN UV auth tokens restrict what an authenticated session may do. Pico FIDO enforces the following permission bits from `ctap.h`:
+
+| Permission | Bit | Scope |
+|---|---|---|
+| `MC` | `0x01` | `authenticatorMakeCredential` |
+| `GA` | `0x02` | `authenticatorGetAssertion` |
+| `CM` | `0x04` | `authenticatorCredentialManagement` |
+| `BE` | `0x08` | Bio enrollment |
+| `LBW` | `0x10` | Large-blob write |
+| `ACFG` | `0x20` | Authenticator configuration |
+| `PCMR` | `0x40` | Per-credential management read-only |
+
+Both PIN protocol 1 and PIN protocol 2 are supported.
+
+## User presence and user verification
+
+Pico FIDO requires a **physical button press** for every operation that demands user presence. The LED pattern changes when the device is waiting for confirmation—it stays almost fully on and pulses off briefly every second.
+
+User verification is handled by a **PIN**. The device enforces a maximum of **`MAX_PIN_RETRIES` = 8** failed attempts before the PIN is blocked. The minimum PIN length defaults to 4 and is configurable via `CTAP_CONFIG` with the `setMinPINLength` option.
+
+## Attestation
+
+Pico FIDO supports two attestation modes:
+
+- **Self attestation** — the credential's own key signs the attestation statement, producing a compact response with no certificate chain.
+- **Enterprise attestation** — a provisioned attestation certificate is used, enabling enterprise device tracking. Enterprise attestation can be enabled or disabled at runtime via `CTAP_CONFIG_AUT_ENABLE` / `CTAP_CONFIG_AUT_DISABLE`.
+
+## Capacity limits
+
+| Parameter | Value |
+|---|---|
+| `MAX_RESIDENT_CREDENTIALS` | 256 |
+| `MAX_CREDENTIAL_COUNT_IN_LIST` | 16 per relying party |
+| `MAX_CRED_ID_LENGTH` | 1024 bytes |
+| `MAX_LARGE_BLOB_SIZE` | 2048 bytes |
+| `MAX_MSG_SIZE` | 1024 bytes |

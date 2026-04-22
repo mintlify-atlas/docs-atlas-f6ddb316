@@ -1,0 +1,73 @@
+---
+title: 'Pico FIDO CMake build configuration reference'
+description: 'Reference for all CMake options that control features, USB identifiers, target hardware, and security settings when building Pico FIDO from source.'
+---
+
+When you configure a Pico FIDO build with CMake, a set of options lets you enable or disable individual application modules, assign USB identifiers, select the target board, and activate security features. Pass any of these options to CMake using the `-D` flag, for example `-DENABLE_OATH_APP=OFF`.
+
+## Feature options
+
+| Option | Default | Description |
+|---|---|---|
+| `ENABLE_POWER_ON_RESET` | `ON` | Perform a full power cycle when the device receives a reset command. Disable if your host has trouble re-enumerating the device after reset. |
+| `ENABLE_OATH_APP` | `ON` | Build the OATH application (TOTP and HOTP). When enabled, `USB_ITF_CCID=1` and `USB_ITF_WCID=1` are set automatically. |
+| `ENABLE_OTP_APP` | `ON` | Build the Yubikey OTP application. When enabled, `USB_ITF_CCID=1` and `USB_ITF_WCID=1` are set automatically. |
+| `ENABLE_PQC` | `0` | Enable post-quantum cryptography components (ML-KEM 512/768/1024). **ESP32 only.** Has no effect on RP2040/RP2350 builds. |
+| `ENABLE_EMULATION` | _(off)_ | Build for host emulation and testing without physical hardware. See [Emulation mode](#emulation-mode) below. |
+
+<Note>
+  When either `ENABLE_OTP_APP` or `ENABLE_OATH_APP` is `ON`, the build automatically sets `USB_ITF_CCID=1` and `USB_ITF_WCID=1`. If you disable both applications, only `USB_ITF_HID` remains active.
+</Note>
+
+## Hardware and identity options
+
+| Option | Default | Description |
+|---|---|---|
+| `PICO_BOARD` | `pico` | Target board identifier passed to the Pico SDK. Common values: `pico`, `pico2`. |
+| `USB_VID` | `FEFF` | USB vendor ID embedded in the firmware. Pre-built UF2 images ship with `2E8A` (granted by Raspberry Pi). Must be a value you own before distributing. |
+| `USB_PID` | `FCFD` | USB product ID embedded in the firmware. Pre-built UF2 images ship with `10FE`. |
+| `VIDPID` | _(none)_ | Preset VID/PID combination. Overrides `USB_VID` and `USB_PID` when set. See [VIDPID presets](#vidpid-presets) below. |
+
+## Security options
+
+| Option | Default | Description |
+|---|---|---|
+| `SECURE_BOOT_PKEY` | _(none)_ | Path to an EC private key (PEM format) used to sign the firmware for Secure Boot. Required when building for RP2350 or ESP32-S3 with Secure Boot enabled. |
+
+## VIDPID presets
+
+Pass `VIDPID=value` to use a known vendor's VID/PID pair instead of specifying raw hex values:
+
+```bash
+cmake .. -DVIDPID=Yubikey5
+```
+
+Supported preset values:
+
+| Value | Device |
+|---|---|
+| `NitroHSM` | Nitrokey HSM |
+| `NitroFIDO2` | Nitrokey FIDO2 |
+| `NitroStart` | Nitrokey Start |
+| `NitroPro` | Nitrokey Pro |
+| `Nitro3` | Nitrokey 3 |
+| `Yubikey5` | YubiKey 5 |
+| `YubikeyNeo` | YubiKey NEO |
+| `YubiHSM` | YubiHSM |
+| `Gnuk` | Gnuk token |
+| `GnuPG` | GnuPG |
+
+## Emulation mode
+
+Setting `ENABLE_EMULATION=1` builds Pico FIDO as a native host executable for testing and development without physical hardware. In this mode:
+
+- The Pico SDK is **not** required.
+- The binary links against `mbedtls` and `pthread` instead of Pico SDK libraries.
+- The build produces a standard executable rather than a UF2 image.
+
+```bash
+cmake .. -DENABLE_EMULATION=1
+make
+```
+
+This mode is primarily used to run the test suite and validate protocol logic on a development machine.

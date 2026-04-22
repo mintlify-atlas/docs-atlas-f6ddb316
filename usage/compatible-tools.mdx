@@ -1,0 +1,55 @@
+---
+title: "Compatible tools and applications for Pico FIDO"
+description: "Discover which desktop apps, CLI tools, browsers, and operating systems work with your Pico FIDO device out of the box, and what each tool lets you do."
+---
+
+Pico FIDO is designed to be broadly compatible with the existing FIDO2 and Yubikey-compatible ecosystem. Because it presents itself as a standard USB HID authenticator, most tools and browsers that support FIDO2 or U2F work without any special configuration. A small set of dedicated tools also gives you full control over credentials, firmware, and device settings.
+
+<Note>
+Pico FIDO uses the HID driver, which is built into Windows, macOS, and Linux. You do not need to install any additional drivers to use the device.
+</Note>
+
+## Management applications
+
+<CardGroup cols={2}>
+  <Card title="PicoKey App" icon="display" href="https://www.picokeys.com/picokeyapp/">
+    The recommended GUI for managing your device. Handles credential management, LED customization, VID/PID changes, and firmware updates. Also adds the correct VID/PID to your CCID driver for OpenSC compatibility.
+  </Card>
+  <Card title="Yubico Authenticator" icon="mobile">
+    Manage OATH TOTP and HOTP credentials stored on the device. Pico FIDO implements the YKOATH protocol, so Yubico Authenticator recognizes it as a compatible authenticator.
+  </Card>
+  <Card title="ykman (YubiKey Manager)" icon="terminal">
+    Official Yubico CLI for managing OTP slots, FIDO2 credentials, and device configuration. Compatible with Pico FIDO because the device implements the same management interface.
+  </Card>
+  <Card title="Nitrokey nitropy" icon="terminal">
+    Open-source CLI tool from Nitrokey, fully compatible with Pico FIDO. Use it to manage FIDO2 credentials and perform device operations from the command line.
+  </Card>
+  <Card title="Nitrokey nitroapp" icon="display">
+    GUI companion to nitropy, also compatible with Pico FIDO. Provides a visual interface for the same operations available through the CLI.
+  </Card>
+</CardGroup>
+
+## Browser support
+
+All major browsers support FIDO2/WebAuthn over USB HID and work with Pico FIDO without any plugins or configuration:
+
+| Browser | FIDO2/WebAuthn support |
+|---|---|
+| Google Chrome | Yes |
+| Mozilla Firefox | Yes |
+| Apple Safari | Yes |
+| Microsoft Edge | Yes |
+
+## Operating system support
+
+| Platform | Support | Notes |
+|---|---|---|
+| Windows | Full | HID driver built in; no additional setup needed |
+| macOS | Full | HID driver built in; no additional setup needed |
+| Linux | Full | HID driver built in; ensure your user has access to the HID device, or add a udev rule |
+
+## OpenSC and CCID compatibility
+
+The default firmware ships with VID/PID `2E8A:10FE` (granted by Raspberry Pi). If you want to use Pico FIDO with OpenSC or other CCID-based tools, you need to add this VID/PID to the `Info.plist` file of your system's CCID driver. The [PicoKey App](https://www.picokeys.com/picokeyapp/) can automate this step.
+
+Alternatively, you can change the VID/PID to one you own at runtime using the `CTAP_CONFIG_PHY_VIDPID` vendor configuration command. See [Vendor configuration and device customization](/usage/vendor-configuration) for details.

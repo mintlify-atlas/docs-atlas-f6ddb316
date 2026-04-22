@@ -1,0 +1,77 @@
+---
+title: 'Running the Pico FIDO CTAP 2.1 test suite'
+description: 'Learn how to install prerequisites, run the full CTAP 2.1 test suite with pytest, and target individual test modules for Pico FIDO.'
+---
+
+The Pico FIDO test suite lives in the `tests/` folder and covers the full CTAP 2.1 surface area — from basic authenticator info through PIN management, credential operations, OATH, and HID transport. The tests are based on the [FIDO2 tests](https://github.com/solokeys/fido2-tests) from Solokeys and have been adapted for the [python-fido2](https://github.com/Yubico/python-fido2) v1.0 package, which is a major refactor from the previous 0.8 version and brings full CTAP 2.1 support.
+
+## Prerequisites
+
+Before you run the tests, install the required Python packages:
+
+<Steps>
+  <Step title="Install python-fido2">
+    The test harness is built around the Yubico python-fido2 library at v1.0 or later.
+
+    ```bash
+    pip install fido2
+    ```
+  </Step>
+  <Step title="Install pytest">
+    Tests are discovered and executed with pytest.
+
+    ```bash
+    pip install pytest
+    ```
+  </Step>
+  <Step title="Install inputimeout">
+    The `conftest.py` fixture uses `inputimeout` to handle interactive prompts during testing.
+
+    ```bash
+    pip install inputimeout
+    ```
+  </Step>
+  <Step title="Connect your device">
+    Plug in your Pico FIDO device. The test harness locates it automatically via `CtapHidDevice.list_devices()` (USB HID) or `CtapPcscDevice.list_devices()` (PC/SC). The default PIN used across the suite is `12345678`.
+  </Step>
+</Steps>
+
+## Running the tests
+
+To run the full suite from the repository root:
+
+```bash
+pytest
+```
+
+To target a specific test module or test name, use the `-k` flag:
+
+```bash
+pytest -k test_credprotect
+```
+
+### Docker-based testing
+
+If you prefer an isolated environment, the repository ships two helper scripts:
+
+- `build-in-docker.sh` — builds the firmware inside a Docker container.
+- `run-test-in-docker.sh` — runs the test suite against the firmware in Docker.
+
+## Test file reference
+
+| File | What it covers |
+|------|----------------|
+| `test_000_getinfo.py` | Authenticator info and reported capabilities (versions, options, PIN UV protocols) |
+| `test_010_pin.py` | PIN management — set, change, lockout, retry counter |
+| `test_020_register.py` | Credential registration (MakeCredential) |
+| `test_021_authenticate.py` | Assertion / authentication (GetAssertion) |
+| `test_022_discoverable.py` | Discoverable credentials (resident keys) |
+| `test_031_blob.py` | Large blob storage (up to 2048 bytes) |
+| `test_033_credprotect.py` | `credProtect` extension — protection policy enforcement |
+| `test_035_hmac_secret.py` | `hmac-secret` extension — per-credential HMAC secrets |
+| `test_037_minpinlength.py` | `minPinLength` extension — minimum PIN length enforcement |
+| `test_040_cred_mgmt.py` | Credential management — enumerate, delete, update |
+| `test_051_ctap1_interop.py` | CTAP1/U2F interoperability with CTAP2 credentials |
+| `test_052_u2f.py` | U2F registration and authentication |
+| `test_055_hid.py` | HID transport — channel management and framing |
+| `test_070_oath.py` | OATH TOTP and HOTP credential operations |

@@ -1,80 +1,94 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: "Quickstart: Flash and register your first Pico FIDO passkey"
+description: "Flash Pico FIDO firmware onto a Raspberry Pi Pico or ESP32-S3 and register your first FIDO2 passkey in a browser in under ten minutes."
 ---
 
-## Get started in three steps
+Pico FIDO turns a Raspberry Pi Pico or ESP32-S3 board into a USB FIDO2 security key. This guide walks you through choosing hardware, getting firmware, flashing the device, and registering your first passkey. The whole process takes less than ten minutes with a pre-built firmware image.
 
-Get your documentation site running locally and make your first customization.
+<Steps>
+  <Step title="Choose your hardware">
+    Pick a supported microcontroller before downloading firmware — each board has a dedicated UF2 build.
 
-### Step 1: Set up your local environment
+    - **Raspberry Pi Pico (RP2040)** — widely available and low cost; note that flash memory is not hardware-encrypted on RP2040 (see the [hardware support](/hardware-support) page for security implications)
+    - **Raspberry Pi Pico 2 (RP2350)** — adds Secure Boot and OTP-backed key storage
+    - **ESP32-S3** — also supports Secure Boot and OTP; uses a separate web-based flashing tool
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    See [hardware support](/hardware-support) for a full comparison.
+  </Step>
 
-### Step 2: Deploy your changes
+  <Step title="Get the firmware">
+    You can use a pre-built image or compile from source.
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    **Download a pre-built UF2 (recommended)**
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    Go to the [releases page](https://github.com/polhenarejos/pico-fido/releases) and download the `.uf2` file that matches your board (for example, `pico_fido_pico-7.6.uf2` for RP2040 or `pico_fido_pico2-7.6.uf2` for RP2350). You can also use the [PicoKeys download page](https://www.picokeys.com/getting-started/) to select your board interactively.
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+    Pre-built images ship with VID/PID `2E8A:10FE`, granted by the Raspberry Pi Foundation.
 
-### Step 3: Go live
+    **Build from source**
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    If you need a custom VID/PID, specific feature flags, or want to verify the build yourself, follow the [build guide for Raspberry Pi Pico](/building/raspberry-pi-pico). Building lets you pass `VIDPID=` to target known device profiles such as `Yubikey5`, `NitroFIDO2`, or `Gnuk`.
 
-## Next steps
+    <Note>
+      You are not authorized to distribute binaries with a VID/PID you do not own. Use the default `2E8A:10FE` for personal use, or obtain your own identifiers for redistribution.
+    </Note>
+  </Step>
 
-Now that you have your docs running, explore these key features:
+  <Step title="Flash the device">
+    The flashing method depends on your hardware.
 
-<CardGroup cols={2}>
+    **Raspberry Pi Pico (RP2040 or RP2350)**
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
+    1. Hold the **BOOTSEL** button on the board.
+    2. While holding **BOOTSEL**, plug the board into your computer via USB.
+    3. Release **BOOTSEL** — a USB mass storage device named `RPI-RP2` appears.
+    4. Copy the `.uf2` file onto that drive.
+    5. The drive disconnects automatically and the board resets with the new firmware.
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
+    **ESP32-S3**
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
+    Use the browser-based [ESP32 Flasher](https://www.picokeys.com/esp32-flasher/) — no local toolchain required. Follow the on-screen instructions to select your firmware and flash the board over USB.
+  </Step>
 
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
+  <Step title="Verify the device is running">
+    After flashing, the onboard LED indicates the current state:
 
-</CardGroup>
+    | LED pattern | State |
+    |---|---|
+    | On almost constantly, off for 100 ms per second | Waiting for button press (user presence required) |
+    | Off almost constantly, on for 500 ms per second | Idle — waiting for a command |
+    | **4 blinks per second** | **Active — ready to receive a command** |
+    | 20 blinks per second | Processing a command |
+
+    When you first plug in the device, you should see the **4 blinks per second** active pattern, confirming the firmware is running correctly.
+  </Step>
+
+  <Step title="Register your passkey in a browser">
+    Plug the device into any computer. Because Pico FIDO uses the standard USB HID driver, no additional software or drivers are needed.
+
+    To register a passkey:
+
+    1. Visit any WebAuthn-compatible site (for example, [webauthn.io](https://webauthn.io) for a quick test).
+    2. Start the registration flow — the site will prompt you to insert or tap a security key.
+    3. Press the physical button on your Pico board when the LED signals user presence (almost always on).
+    4. The passkey is registered and stored on the device as a discoverable credential.
+
+    Pico FIDO works with all major browsers (Chrome, Firefox, Edge, Safari) and operating systems (Windows, macOS, Linux) without any configuration.
+  </Step>
+</Steps>
+
+## Manage your device
+
+The [PicoKey App](https://www.picokeys.com/picokeyapp/) is the recommended tool for ongoing device management. It provides:
+
+- Credential management and deletion
+- PIN setup and change
+- LED blink pattern customization
+- OATH TOTP/HOTP account management
+- Firmware updates
+
+For command-line management, both **Yubico YKMAN** and **Nitrokey nitropy** are fully compatible with Pico FIDO.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  The RP2040 (original Raspberry Pi Pico) does not support hardware-backed key encryption. If your device is stolen, stored private keys may be accessible via a flash dump. For stronger security guarantees, use a Raspberry Pi Pico 2 (RP2350) or an ESP32-S3 board, both of which support Secure Boot and OTP key storage. See [hardware support](/hardware-support) for details.
 </Note>

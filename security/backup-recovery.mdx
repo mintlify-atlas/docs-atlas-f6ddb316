@@ -1,0 +1,91 @@
+---
+title: "Device backup, recovery, and rescue interface"
+description: "Export your device seed as a 24-word mnemonic, restore credentials on a new device, and recover an unresponsive Pico FIDO using the rescue interface."
+---
+
+Pico FIDO lets you export your entire device seed as a 24-word BIP39-style mnemonic phrase. This phrase encodes all resident keys and seeds, so you can restore your credentials on a replacement device if yours is lost, damaged, or stolen. The backup and restore process is available through the PicoKey App (GUI) or `nitropy` (CLI).
+
+<Warning>
+  Your 24-word backup phrase gives full access to all credentials stored on the device. Anyone who has these words can restore your keys to another device. Store the phrase offline in a secure location and never share it.
+</Warning>
+
+## Backup command
+
+Backup is performed using the `CTAP_VENDOR_BACKUP` (`0x01`) vendor command. When you trigger a backup:
+
+1. The device encodes the device seed and all resident key material into a 24-word mnemonic.
+2. The words are displayed in the PicoKey App or returned via `nitropy`.
+3. You write down the words and store them securely.
+
+No PIN or button press is required to read the backup if the device is unlocked. On a locked device, you must first supply the admin PIN via `CTAP_VENDOR_UNLOCK` (`0x03`).
+
+## Restore
+
+To restore credentials to a new or reset device:
+
+<Steps>
+  <Step title="Flash the new device">
+    Flash your replacement device with the same Pico FIDO firmware version. The device starts in an uninitialized state.
+  </Step>
+  <Step title="Open the PicoKey App or nitropy">
+    Connect your new device and open the PicoKey App, or use `nitropy` on the command line.
+
+    ```bash
+    nitropy fido2 restore
+    ```
+  </Step>
+  <Step title="Enter your 24 words">
+    Enter the 24-word phrase in the correct order when prompted. The device imports the seed and reconstructs all resident keys from it.
+  </Step>
+  <Step title="Verify your credentials">
+    After restore, test a credential on one of your registered services to confirm the restore succeeded.
+  </Step>
+</Steps>
+
+## Secure Lock and unlock
+
+Secure Lock (`CTAP_VENDOR_UNLOCK`, `0x03`) protects the device from flash memory dumps by locking access to sensitive flash regions. A locked device cannot export a backup without first presenting the admin PIN.
+
+This is particularly important on RP2040, where the MKEK is stored in unprotected flash. Even on RP2040, enabling Secure Lock means an attacker who dumps flash will find the data region locked and inaccessible without the admin PIN.
+
+<Warning>
+  On RP2040, the flash dump protection provided by Secure Lock is a software barrier only. A sophisticated attacker with physical access and low-level hardware tools may still be able to bypass it. Use RP2350 or ESP32-S3 for hardware-enforced protection.
+</Warning>
+
+To unlock a locked device for backup or restore:
+
+```bash
+nitropy fido2 unlock --admin-pin <your-admin-pin>
+```
+
+## Rescue interface
+
+If your device becomes unresponsive or is no longer detected as a FIDO authenticator, the rescue interface provides a recovery path. Rescue mode exposes a minimal communication interface that bypasses normal firmware execution, allowing you to:
+
+- Re-flash firmware on an otherwise unresponsive device
+- Recover from a partial or failed firmware update
+- Re-initialize the device if it is stuck in an error state
+
+Rescue mode does not require your PIN or backup words — it operates at the firmware level. Once you re-flash successfully, you can restore your credentials from your 24-word backup.
+
+## Tools
+
+| Tool | Type | Capabilities |
+|---|---|---|
+| [PicoKey App](https://www.picokeys.com/picokeyapp/) | GUI | Backup, restore, unlock, credential management |
+| `nitropy` | CLI | Backup, restore, unlock, device configuration |
+
+<Note>
+  The PicoKey App is the recommended tool for most users. `nitropy` is better suited for scripted or automated workflows.
+</Note>
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Secure Boot" icon="lock" href="/security/secure-boot">
+    Hardware-backed MKEK protection and OTP storage on RP2350 and ESP32-S3
+  </Card>
+  <Card title="PIN protection" icon="hashtag" href="/security/pin-protection">
+    Configure PIN policies, admin PIN, and user verification tokens
+  </Card>
+</CardGroup>

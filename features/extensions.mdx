@@ -1,0 +1,180 @@
+---
+title: "Pico FIDO CTAP 2.1 authenticator extension reference"
+description: "Pico FIDO supports eight CTAP 2.1 extensions including hmac-secret, credProtect, credBlob, largeBlobKey, minPinLength, and thirdPartyPayment."
+---
+
+CTAP 2.1 extensions let relying parties and clients unlock optional authenticator capabilities without changing the core protocol. Pico FIDO advertises eight extensions in the `authenticatorGetInfo` response under the `extensions` key: `credBlob`, `credProtect`, `hmac-secret`, `hmac-secret-mc`, `largeBlobKey`, `minPinLength`, `thirdPartyPayment`, and `credProps`. You enable an extension by including it in the `extensions` map of a `makeCredential` or `getAssertion` call. Extensions that modify stored state require a valid PIN UV auth token.
+
+---
+
+## hmac-secret
+
+The `hmac-secret` extension derives a deterministic secret from a credential. When you supply one or two 32-byte salts at assertion time, the device returns `HMAC-SHA256(credential-key, salt)`. Because the key is bound to the device and the credential, the output is reproducible only on this specific authenticator with this specific credential—making it ideal for **disk encryption key derivation** or application-level secret generation.
+
+**When to use it:** Use `hmac-secret` whenever you need a stable, device-bound secret that is not stored anywhere—for example, to unlock a LUKS volume or decrypt an application database without transmitting a password.
+
+**How clients enable it:** Pass `hmacCreateSecret: true` in the extensions map during `makeCredential` to mark the credential as hmac-secret capable. During `getAssertion`, pass one or two salts:
+
+```python
+# Registration
+res = device.doMC(extensions={"hmacCreateSecret": True}, rk=True)
+assert res.attestation_object.auth_data.extensions["hmac-secret"] == True
+
+# Assertion with one salt
+output = device.doGA(
+    extensions={"hmacGetSecret": {"salt1": b"\xa5" * 32}}
+)["res"].get_response(0)
+```
+
+<Note>
+  The output differs depending on whether UV is performed during the assertion. A UV assertion uses a different internal key path, so `output_with_uv != output_without_uv` for the same salt.
+</Note>
+
+You can supply two salts simultaneously (`salt1` and `salt2`) to get two independent 32-byte outputs in a single round trip.
+
+---
+
+## credProtect
+
+The `credProtect` extension enforces user verification requirements for individual credentials, independent of the relying party's global UV policy. Three protection levels are defined in `credential.h`:
+
+| Level | Constant | Behavior |
+|---|---|---|
+| `1` | `CRED_PROT_UV_OPTIONAL` | No UV required. The credential is returned in assertions with or without UV. |
+| `2` | `CRED_PROT_UV_OPTIONAL_WITH_LIST` | UV is optional, but the credential is only revealed when its credential ID is explicitly listed in `allowCredentials`. Without UV, it is hidden from credential enumeration. |
+| `3` | `CRED_PROT_UV_REQUIRED` | UV is always required. The credential is never returned without a successful PIN verification. |
+
+**When to use it:** Use level 3 for high-value credentials (banking, admin accounts) where you never want the credential usable without a PIN, regardless of what the relying party requests.
+
+**How clients enable it:**
+
+```python
+from fido2.ctap2.extensions import CredProtectExtension
+
+# Level 2 — only visible with credential ID or UV
+res = device.doMC(
+    rk=True,
+    extensions={"credentialProtectionPolicy": CredProtectExtension.POLICY.OPTIONAL_WITH_LIST}
+)
+
+# Level 3 — UV always required
+res = device.doMC(
+    rk=True,
+    extensions={"credentialProtectionPolicy": CredProtectExtension.POLICY.REQUIRED}
+)
+```
+
+The chosen level is echoed back in the attestation's `credProtect` extension field as `1`, `2`, or `3`.
+
+---
+
+## credBlob
+
+The `credBlob` extension stores up to **128 bytes** (`MAX_CREDBLOB_LENGTH`) of arbitrary data alongside a credential. The blob is returned verbatim in the authenticator data of every assertion, without any processing by the device.
+
+**When to use it:** Use `credBlob` to attach a small application-specific payload to a credential—for example, a username hint, a public key fingerprint, or a compressed user preference object—so the relying party receives it automatically during sign-in without an extra round trip.
+
+**How clients enable it:**
+
+```python
+# Store data at registration
+device.doMC(extensions={"credBlob": b"user@example.com"}, rk=True)
+
+# The blob is returned in every assertion's authenticator data
+auth = device.doGA()["res"].get_response(0)
+blob = auth.response.authenticator_data.extensions["credBlob"]
+```
+
+<Warning>
+  `credBlob` data is stored in plaintext on the device and is returned to any client that asserts the credential. Do not store sensitive information in a `credBlob`.
+</Warning>
+
+---
+
+## largeBlobKey
+
+The `largeBlobKey` extension associates a symmetric encryption key with a credential. This key is used to read and write entries in the device's large-blob storage array (up to `MAX_LARGE_BLOB_SIZE` = 2048 bytes total), accessed via the `CTAP_LARGE_BLOBS` (`0x0C`) command.
+
+**When to use it:** Use `largeBlobKey` when a relying party needs to store more data per credential than `credBlob` allows—for example, a full user certificate or an encrypted settings payload—and wants the storage to be tied to a specific credential.
+
+**How clients enable it:**
+
+```python
+# Request a largeBlobKey at registration
+res = device.doMC(extensions={"largeBlobKey": True}, rk=True)
+# The key is returned in the attestation extensions
+
+# Write data to large-blob storage (requires LBW permission on the token)
+# Read data back at assertion time
+```
+
+Writing to large-blob storage requires a PIN UV auth token with the `LBW` (`0x10`) permission bit.
+
+---
+
+## minPinLength
+
+The `minPinLength` extension reports the minimum PIN length configured on the device. The value is set via `CTAP_CONFIG` using the `setMinPINLength` sub-command, which requires a PIN UV auth token with the `ACFG` (`0x20`) permission.
+
+**When to use it:** Relying parties that enforce PIN complexity policies can read the minimum PIN length from the attestation and reject credentials from devices that do not meet their requirements.
+
+**How clients enable it:** Include `"minPinLength": true` in the extensions map at `makeCredential`. The device returns the current minimum PIN length as an integer in the attestation extensions.
+
+```python
+res = device.doMC(extensions={"minPinLength": True}, rk=True)
+min_len = res.attestation_object.auth_data.extensions.get("minPinLength")
+```
+
+The default minimum PIN length is **4**. Administrators can raise it (but not lower it) using `CTAP_CONFIG`.
+
+---
+
+## credProps
+
+The `credProps` extension returns properties of a newly created credential. Currently it reports a single property:
+
+| Property | Type | Description |
+|---|---|---|
+| `rk` | `boolean` | `true` if the credential was stored as a discoverable (resident) credential on the device |
+
+**When to use it:** Use `credProps` in a browser `makeCredential` call to confirm whether the authenticator actually created a resident key, regardless of what `residentKey` value was requested.
+
+**How clients enable it:**
+
+```javascript
+const credential = await navigator.credentials.create({
+  publicKey: {
+    // ...
+    extensions: { credProps: true },
+  },
+});
+
+const rk = credential.getClientExtensionResults().credProps?.rk;
+console.log("Resident key stored:", rk);
+```
+
+Pico FIDO echoes this extension for every `makeCredential` call when requested, allowing WebAuthn clients to verify resident-key status without relying on the `authenticatorSelection` options alone.
+
+---
+
+## hmac-secret-mc
+
+The `hmac-secret-mc` extension is a variant of `hmac-secret` that allows the HMAC secret to be computed during `makeCredential` (at registration time), rather than only at `getAssertion`. This means a client can derive a device-bound secret immediately when a credential is created, without a separate authentication round trip.
+
+**When to use it:** Use `hmac-secret-mc` when your application needs a device-bound secret at credential creation time — for example, to initialize encrypted storage during device enrollment.
+
+**How clients enable it:** Include `"hmacCreateSecret": true` in the `extensions` map of your `makeCredential` call. The server receives the HMAC secret output in the attestation's extension data.
+
+<Note>
+  `hmac-secret-mc` is advertised separately from `hmac-secret` in `authenticatorGetInfo`. A client that supports `hmac-secret-mc` should check for this extension string before attempting registration-time HMAC derivation.
+</Note>
+
+---
+
+## thirdPartyPayment
+
+The `thirdPartyPayment` extension is an emerging WebAuthn extension that enables authenticators to signal support for payment-related credential flows. Pico FIDO advertises this extension in `authenticatorGetInfo`, indicating it can participate in payment authentication scenarios as defined by the WebAuthn Payment Extension specification.
+
+**When to use it:** This extension is primarily relevant to payment processors and browser integrations that implement the WebAuthn `payment` extension. Most FIDO2 use cases do not require it.
+
+**How clients enable it:** Include `"thirdPartyPayment": true` in the `extensions` map at `makeCredential`. The extension is echoed back in the credential's attestation data when the authenticator supports it.
